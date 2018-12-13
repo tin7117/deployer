@@ -13,14 +13,13 @@ desc('Preparing host for deploy');
 task('deploy:prepare', function () {
     // Check if shell is POSIX-compliant
     $result = runDocker('echo $0');
-
     if (!str_contains($result, 'bash') && !str_contains($result, 'sh')) {
         throw new \RuntimeException(
             'Shell on your server is not POSIX-compliant. Please change to sh, bash or similar.'
         );
     }
 
-    runDocker('if [ ! -d {{deploy_path}} ]; then mkdir -p {{deploy_path}}; fi');
+    run('if [ ! -d {{local_deploy_path}} ]; then mkdir -p {{local_deploy_path}}; fi');
 
     // Check for existing /current directory (not symlink)
     $result = testDocker('[! -L {{deploy_path}}/current ] && [ -d {{deploy_path}}/current ]');
@@ -29,11 +28,11 @@ task('deploy:prepare', function () {
     }
 
     // Create metadata .dep dir.
-    runDocker("cd {{deploy_path}} && if [ ! -d .dep ]; then mkdir .dep; fi");
+    run("cd {{local_deploy_path}} && if [ ! -d .dep ]; then mkdir .dep; fi");
     
     // Create releases dir.
-    runDocker("cd {{deploy_path}} && if [ ! -d releases ]; then mkdir releases; fi");
+    run("cd {{local_deploy_path}} && if [ ! -d releases ]; then mkdir releases; fi");
     
     // Create shared dir.
-    runDocker("cd {{deploy_path}} && if [ ! -d shared ]; then mkdir shared; fi");
+    run("cd {{local_deploy_path}} && if [ ! -d shared ]; then mkdir shared; fi");
 });
