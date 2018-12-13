@@ -65,7 +65,7 @@ set('shared_files', []);
 set('copy_dirs', []);
 
 set('writable_dirs', []);
-set('writable_mode', 'acl'); // chmod, chown, chgrp or acl.
+set('writable_mode', 'chmod'); // chmod, chown, chgrp or acl.
 set('writable_use_sudo', false); // Using sudo in writable commands?
 set('writable_chmod_mode', '0755'); // For chmod mode
 set('writable_chmod_recursive', true); // For chmod mode
@@ -94,7 +94,7 @@ set('env', []); // Run command environment (for example, SYMFONY_ENV=prod)
  * Return current release path.
  */
 set('current_path', function () {
-    $link = run("readlink {{deploy_path}}/current");
+    $link = runDocker("readlink {{deploy_path}}/current");
     return substr($link, 0, 1) === '/' ? $link : get('deploy_path') . '/' . $link;
 });
 
@@ -116,7 +116,7 @@ set('bin/composer', function () {
     }
 
     if (empty($composer)) {
-        run("cd {{release_path}} && curl -sS https://getcomposer.org/installer | {{bin/php}}");
+        runDocker("cd {{release_path}} && curl -sS https://getcomposer.org/installer | {{bin/php}}");
         $composer = '{{release_path}}/composer.phar';
     }
 

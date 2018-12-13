@@ -29,21 +29,21 @@ set('release_name', function () {
  * Return list of releases on host.
  */
 set('releases_list', function () {
-    cd('{{deploy_path}}');
-
+    cd('{{local_deploy_path}}');
+    
     // If there is no releases return empty list.
     if (!test('[ -d releases ] && [ "$(ls -A releases)" ]')) {
         return [];
     }
-
+    
     // Will list only dirs in releases.
     $list = explode("\n", run('cd releases && ls -t -1 -d */'));
-
+    
     // Prepare list.
     $list = array_map(function ($release) {
         return basename(rtrim(trim($release), '/'));
     }, $list);
-
+    
     $releases = []; // Releases list.
 
     // Collect releases based on .dep/releases info.
@@ -62,7 +62,6 @@ set('releases_list', function () {
             // Always read as many lines as there are release directories.
             $csv = run("tail -n " . max(count($releases), ($keepReleases * 2 + 5)) . " .dep/releases");
         }
-
         $metainfo = Csv::parse($csv);
 
         for ($i = count($metainfo) - 1; $i >= 0; --$i) {
@@ -84,9 +83,9 @@ set('releases_list', function () {
  * Return release path.
  */
 set('release_path', function () {
-    $releaseExists = test('[ -h {{deploy_path}}/release ]');
+    $releaseExists = testDocker('[ -h {{deploy_path}}/release ]');
     if ($releaseExists) {
-        $link = run("readlink {{deploy_path}}/release");
+        $link = runDocker("readlink {{deploy_path}}/release");
         return substr($link, 0, 1) === '/' ? $link : get('deploy_path') . '/' . $link;
     } else {
         return get('current_path');
@@ -96,14 +95,14 @@ set('release_path', function () {
 
 desc('Prepare release. Clean up unfinished releases and prepare next release');
 task('deploy:release', function () {
-    cd('{{deploy_path}}');
+    //cd('{{deploy_path}}');
 
     // Clean up if there is unfinished release
-    $previousReleaseExist = test('[ -h release ]');
+    $previousReleaseExist = testDocker('[ -h {{deploy_path}}/release ]');
 
     if ($previousReleaseExist) {
-        run('rm -rf "$(readlink release)"'); // Delete release
-        run('rm release'); // Delete symlink
+        runDocker('rm -rf "$(readlink {{deploy_path}}/release)"'); // Delete release
+        runDocker('rm {{deploy_path}}/release'); // Delete symlink
     }
 
     // We need to get releases_list at same point as release_name,
@@ -114,22 +113,21 @@ task('deploy:release', function () {
 
     // Fix collisions
     $i = 0;
-    while (test("[ -d {{deploy_path}}/releases/$releaseName ]")) {
+    while (testDocker("[ -d {{deploy_path}}/releases/$releaseName ]")) {
         $releaseName .= '.' . ++$i;
         set('release_name', $releaseName);
     }
-
+    
     $releasePath = parse("{{deploy_path}}/releases/{{release_name}}");
-
     // Metainfo.
     $date = run('date +"%Y%m%d%H%M%S"');
 
     // Save metainfo about release
-    run("echo '$date,{{release_name}}' >> .dep/releases");
+    runDocker("echo \"$date,{{release_name}}\" >> {{deploy_path}}/.dep/releases");
 
     // Make new release
-    run("mkdir $releasePath");
-    run("{{bin/symlink}} $releasePath {{deploy_path}}/release");
+    runDocker("mkdir -p $releasePath");
+    runDocker("{{bin/symlink}} $releasePath {{deploy_path}}/release");
 
     // Add to releases list
     array_unshift($releasesList, $releaseName);

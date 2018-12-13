@@ -12,7 +12,7 @@ use function Deployer\Support\str_contains;
 desc('Preparing host for deploy');
 task('deploy:prepare', function () {
     // Check if shell is POSIX-compliant
-    $result = run('echo $0');
+    $result = runDocker('echo $0');
 
     if (!str_contains($result, 'bash') && !str_contains($result, 'sh')) {
         throw new \RuntimeException(
@@ -20,20 +20,20 @@ task('deploy:prepare', function () {
         );
     }
 
-    run('if [ ! -d {{deploy_path}} ]; then mkdir -p {{deploy_path}}; fi');
+    runDocker('if [ ! -d {{deploy_path}} ]; then mkdir -p {{deploy_path}}; fi');
 
     // Check for existing /current directory (not symlink)
-    $result = test('[ ! -L {{deploy_path}}/current ] && [ -d {{deploy_path}}/current ]');
+    $result = testDocker('[! -L {{deploy_path}}/current ] && [ -d {{deploy_path}}/current ]');
     if ($result) {
         throw new \RuntimeException('There already is a directory (not symlink) named "current" in ' . get('deploy_path') . '. Remove this directory so it can be replaced with a symlink for atomic deployments.');
     }
 
     // Create metadata .dep dir.
-    run("cd {{deploy_path}} && if [ ! -d .dep ]; then mkdir .dep; fi");
-
+    runDocker("cd {{deploy_path}} && if [ ! -d .dep ]; then mkdir .dep; fi");
+    
     // Create releases dir.
-    run("cd {{deploy_path}} && if [ ! -d releases ]; then mkdir releases; fi");
-
+    runDocker("cd {{deploy_path}} && if [ ! -d releases ]; then mkdir releases; fi");
+    
     // Create shared dir.
-    run("cd {{deploy_path}} && if [ ! -d shared ]; then mkdir shared; fi");
+    runDocker("cd {{deploy_path}} && if [ ! -d shared ]; then mkdir shared; fi");
 });

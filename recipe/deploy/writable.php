@@ -35,10 +35,10 @@ task('deploy:writable', function () {
     }
 
     try {
-        cd('{{release_path}}');
+        //cd('{{release_path}}');
 
         // Create directories if they don't exist
-        run("mkdir -p $dirs");
+        runDocker("cd {{release_path}} && mkdir -p $dirs");
 
         if ($mode === 'chown') {
             // Change owner.
@@ -56,7 +56,7 @@ task('deploy:writable', function () {
             run("$sudo chgrp -RH $httpGroup $dirs", $runOpts);
         } elseif ($mode === 'chmod') {
             $recursive = get('writable_chmod_recursive') ? '-R' : '';
-            run("$sudo chmod $recursive {{writable_chmod_mode}} $dirs", $runOpts);
+            runDocker("cd {{release_path}} && $sudo chmod $recursive {{writable_chmod_mode}} $dirs", $runOpts);
         } elseif ($mode === 'acl') {
             if (strpos(run("chmod 2>&1; true"), '+a') !== false) {
                 // Try OS-X specific setting of access-rights

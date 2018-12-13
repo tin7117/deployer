@@ -307,6 +307,10 @@ function run($command, $options = [])
     return rtrim($output);
 }
 
+function runDocker($command, $options = []){
+    return run("docker exec -t {{docker_container}} sh -c \"{$command}\"", $options);
+}
+
 /**
  * Execute commands on local machine
  *
@@ -343,6 +347,20 @@ function runLocally($command, $options = [])
 function test($command)
 {
     return run("if $command; then echo 'true'; fi") === 'true';
+}
+    
+/**
+* Run test command.
+* Example:
+*
+*     test('[ -d {{release_path}} ]')
+*
+* @param string $command
+* @return bool
+*/
+function testDocker($command)
+{
+    return run("docker exec -t {{docker_container}} sh -c \"if $command; then echo 'true'; fi\"") === 'true';
 }
 
 /**
@@ -461,19 +479,13 @@ function download($source, $destination, array $config = [])
     if ($host instanceof Localhost) {
         $rsync->call($host->getHostname(), $source, $destination, $config);
     } else {
-        if (!isset($config['options']) || !is_array($config['options'])) {
-            $config['options'] = [];
-        }
-
         $sshArguments = $host->getSshArguments()->getCliArguments();
         if (empty($sshArguments) === false) {
+            if (!isset($config['options']) || !is_array($config['options'])) {
+                $config['options'] = [];
+            }
             $config['options'][] = "-e 'ssh $sshArguments'";
         }
-
-        if ($host->has("become")) {
-            $config['options'][]  = "--rsync-path='sudo -H -u " . $host->get('become') . " rsync'";
-        }
-
         $rsync->call($host->getHostname(), "$host:$source", $destination, $config);
     }
 }
@@ -736,11 +748,12 @@ function isDebug()
  */
 function commandExist($command)
 {
-    return test("hash $command 2>/dev/null");
+    return testDocker("hash $command 2>/dev/null");
 }
 
 function commandSupportsOption($command, $option)
 {
+    //run("if [[ $(docker exec -t {{docker_container}} sh -c \"man $command 2>&1 || $command -h 2>&1 || $command --help 2>&1\" ) =~ '$option' ]]; then echo 'true'; fi"));
     return test("[[ $(man $command 2>&1 || $command -h 2>&1 || $command --help 2>&1) =~ '$option' ]]");
 }
 
@@ -762,7 +775,7 @@ function locateBinaryPath($name)
     // Try `command`, should cover all Bourne-like shells
     // Try `which`, should cover most other cases
     // Fallback to `type` command, if the rest fails
-    $path = run("command -v $nameEscaped || which $nameEscaped || type -p $nameEscaped");
+    $path = runDocker("command -v $nameEscaped || which $nameEscaped || type -p $nameEscaped");
     if ($path) {
         // Deal with issue when `type -p` outputs something like `type -ap` in some implementations
         return trim(str_replace("$name is", "", $path));
