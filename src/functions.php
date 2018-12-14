@@ -753,8 +753,8 @@ function commandExist($command)
 
 function commandSupportsOption($command, $option)
 {
-    //run("if [[ $(docker exec -t {{docker_container}} sh -c \"man $command 2>&1 || $command -h 2>&1 || $command --help 2>&1\" ) =~ '$option' ]]; then echo 'true'; fi"));
-    return test("[[ $(man $command 2>&1 || $command -h 2>&1 || $command --help 2>&1) =~ '$option' ]]");
+    return run("if [[ $( docker exec -t {{docker_container}} sh -c \"man $command 2>&1 || $command -h 2>&1 || $command --help 2>&1\" ) =~ '$option' ]]; then echo 'true'; fi");
+    //return test("[[ $(man $command 2>&1 || $command -h 2>&1 || $command --help 2>&1) =~ '$option' ]]");
 }
 
 /**
